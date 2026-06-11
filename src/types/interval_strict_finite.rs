@@ -1,16 +1,20 @@
-use crate::{Contains, Overlaps};
+use crate::{Contains, Length, Overlaps};
 use core::fmt::Debug;
 use derive_getters::Getters;
 use derive_more::Into;
+use num_traits::CheckedSub;
 use thiserror::Error;
 
 pub const INTERVAL_BOUND_EXCLUDED: bool = false;
 pub const INTERVAL_BOUND_INCLUDED: bool = true;
 
+/// A strict finite interval.
+///
+/// This type intentionally doesn't implement `Ord` or `PartialOrd`, because a single interval has multiple values that can be compared (for example: field values, length value). Users should compare the values directly.
 #[derive(Getters, Into, Eq, PartialEq, Hash, Clone, Copy, Debug)]
 pub struct IntervalStrictFinite<T, const A_INC: bool, const B_INC: bool> {
-    a: T,
-    b: T,
+    lo: T,
+    hi: T,
 }
 
 pub type IntervalStrictFiniteExcExc<T> = IntervalStrictFinite<T, INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_EXCLUDED>;
@@ -22,16 +26,16 @@ impl<T, const A_INC: bool, const B_INC: bool> IntervalStrictFinite<T, A_INC, B_I
 where
     T: Ord,
 {
-    pub fn new_ordered(a: T, b: T) -> Self {
+    pub fn new_ordered(lo: T, hi: T) -> Self {
         use core::cmp::Ordering::*;
-        match a.cmp(&b) {
+        match lo.cmp(&hi) {
             Greater => Self {
-                a: b,
-                b: a,
+                lo: hi,
+                hi: lo,
             },
             Equal | Less => Self {
-                a,
-                b,
+                lo,
+                hi,
             },
         }
     }
@@ -43,19 +47,31 @@ where
 {
     type Error = TryFromTupleForIntervalStrictFiniteError<T>;
 
-    fn try_from((a, b): (T, T)) -> Result<Self, Self::Error> {
+    fn try_from((lo, hi): (T, T)) -> Result<Self, Self::Error> {
         use TryFromTupleForIntervalStrictFiniteError::*;
-        if a <= b {
-            Ok(Self {
-                a,
-                b,
-            })
-        } else {
-            Err(OrderCheckFailed {
-                a,
-                b,
-            })
+        use core::cmp::Ordering::*;
+        let order = lo.cmp(&hi);
+        match (order, lo, hi) {
+            (Equal | Less, lo, hi) => Ok(Self {
+                lo,
+                hi,
+            }),
+            (Greater, lo, hi) => Err(OrderCheckFailed {
+                lo,
+                hi,
+            }),
         }
+    }
+}
+
+impl<T, const A_INC: bool, const B_INC: bool> Length for IntervalStrictFinite<T, A_INC, B_INC>
+where
+    T: CheckedSub,
+{
+    type Output = Option<T>;
+
+    fn length(&self) -> Self::Output {
+        self.hi.checked_sub(&self.lo)
     }
 }
 
@@ -66,7 +82,7 @@ macro_rules! impl_contains {
             T: Ord,
         {
             fn contains(&self, value: &T) -> bool {
-                self.a $lower_op *value && *value $upper_op self.b
+                self.lo $lower_op *value && *value $upper_op self.hi
             }
         }
     };
@@ -84,7 +100,7 @@ macro_rules! impl_overlaps {
             T: Ord,
         {
             fn overlaps(&self, other: &IntervalStrictFinite<T, $other_a_inc, $other_b_inc>) -> bool {
-                self.a $left_op other.b && other.a $right_op self.b
+                self.lo $left_op other.hi && other.lo $right_op self.hi
             }
         }
     };
@@ -110,5 +126,32 @@ impl_overlaps!(INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_
 #[derive(Error, Clone, Copy, Debug)]
 pub enum TryFromTupleForIntervalStrictFiniteError<T> {
     #[error("interval lower bound must be less than or equal to upper bound")]
-    OrderCheckFailed { a: T, b: T },
+    OrderCheckFailed { lo: T, hi: T },
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{IntervalStrictFiniteIncInc, Length};
+    use errgonomic::handle_bool;
+    use thiserror::Error;
+
+    #[test]
+    fn length_returns_none_when_strict_interval_length_overflows_output_type() -> Result<(), LengthReturnsNoneWhenStrictIntervalLengthOverflowsOutputTypeError> {
+        use LengthReturnsNoneWhenStrictIntervalLengthOverflowsOutputTypeError::*;
+        let interval = IntervalStrictFiniteIncInc::new_ordered(i8::MIN, i8::MAX);
+        let length = interval.length();
+        handle_bool!(length.is_some(), LengthMustOverflowInvalid, length);
+
+        let direct_difference = i8::MAX.checked_sub(i8::MIN);
+        handle_bool!(direct_difference.is_some(), DirectDifferenceMustOverflowInvalid, direct_difference);
+        Ok(())
+    }
+
+    #[derive(Error, Clone, Copy, Debug)]
+    pub enum LengthReturnsNoneWhenStrictIntervalLengthOverflowsOutputTypeError {
+        #[error("strict interval length must overflow the output type")]
+        LengthMustOverflowInvalid { length: Option<i8> },
+        #[error("direct i8 subtraction must overflow the output type")]
+        DirectDifferenceMustOverflowInvalid { direct_difference: Option<i8> },
+    }
 }
