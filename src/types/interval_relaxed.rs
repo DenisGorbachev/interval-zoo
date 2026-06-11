@@ -6,7 +6,7 @@ use derive_new::new;
 
 use Bound::{Excluded, Included, Unbounded};
 
-#[derive(new, Getters, Dissolve, From, Eq, PartialEq, Hash, Clone, Debug)]
+#[derive(new, Getters, Dissolve, From, Eq, PartialEq, Hash, Clone, Copy, Debug)]
 pub struct IntervalDynamicRelaxed<T> {
     pub a: Bound<T>,
     pub b: Bound<T>,
