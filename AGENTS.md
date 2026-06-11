@@ -463,13 +463,13 @@ A struct with two fields (`a`, `b`).
 * Must derive `Eq, PartialEq, Hash, Clone, Copy, Debug`
 * Must implement `Contains`
 * Must implement `Overlaps`
+* Must have `new_normalized` constructor that enforces `a <= b` by reordering.
 
 ### Relaxed interval type
 
 An interval type that doesn't enforce `a <= b`.
 
 * Must have `pub` fields
-* Must have `normalized` constructor
 * Must have `normalize(&mut self)` method
 
 ### Strict interval type
@@ -478,7 +478,6 @@ An interval type that enforces `a <= b`.
 
 * Must have private fields
 * Must derive `Getters, Into`
-* Must implement `From<(T, T)>` that enforces `a <= b` by reordering
 * Must implement `TryFrom<(T, T)>` that enforces `a <= b` by returning an error with `OrderCheckFailed` variant
 
 ### Finite interval
@@ -1896,6 +1895,7 @@ standard-traits = { git = "https://github.com/DenisGorbachev/standard-traits" }
 strum = { version = "0.27.2", features = ["derive"] }
 stub-macro = { version = "0.2.1" }
 subtype = { git = "https://github.com/DenisGorbachev/subtype" }
+thiserror = "2.0.18"
 ```
 
 ### fnox.toml
