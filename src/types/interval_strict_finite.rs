@@ -22,7 +22,7 @@ impl<T, const A_INC: bool, const B_INC: bool> IntervalStrictFinite<T, A_INC, B_I
 where
     T: Ord,
 {
-    pub fn new_ordered((a, b): (T, T)) -> Self {
+    pub fn new_ordered(a: T, b: T) -> Self {
         use core::cmp::Ordering::*;
         match a.cmp(&b) {
             Greater => Self {
