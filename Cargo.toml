@@ -1,11 +1,11 @@
 [package]
-name = "rust-pre-public-lib-template"
+name = "interval-zoo"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.93.1"
-description = "A template for creating Rust pre-public libs."
-homepage = "https://github.com/DenisGorbachev/rust-pre-public-lib-template"
-repository = "https://github.com/DenisGorbachev/rust-pre-public-lib-template"
+description = "A collection of interval types"
+homepage = "https://github.com/DenisGorbachev/interval-zoo"
+repository = "https://github.com/DenisGorbachev/interval-zoo"
 readme = "README.md"
 keywords = []
 categories = []
@@ -30,7 +30,7 @@ exclude = [
 ]
 
 [package.metadata.details]
-title = "Rust pre-public lib template"
+title = "A collection of interval types"
 tagline = ""
 summary = ""
 announcement = ""
@@ -46,3 +46,8 @@ standard-traits = { git = "https://github.com/DenisGorbachev/standard-traits" }
 strum = { version = "0.27.2", features = ["derive"] }
 stub-macro = { version = "0.2.1" }
 subtype = { git = "https://github.com/DenisGorbachev/subtype" }
+
+
+
+
+

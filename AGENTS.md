@@ -1802,13 +1802,13 @@ cfg_if::cfg_if! {
 
 ```toml
 [package]
-name = "rust-pre-public-lib-template"
+name = "interval-zoo"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.93.1"
-description = "A template for creating Rust pre-public libs."
-homepage = "https://github.com/DenisGorbachev/rust-pre-public-lib-template"
-repository = "https://github.com/DenisGorbachev/rust-pre-public-lib-template"
+description = "A collection of interval types"
+homepage = "https://github.com/DenisGorbachev/interval-zoo"
+repository = "https://github.com/DenisGorbachev/interval-zoo"
 readme = "README.md"
 keywords = []
 categories = []
@@ -1833,7 +1833,7 @@ exclude = [
 ]
 
 [package.metadata.details]
-title = "Rust pre-public lib template"
+title = "A collection of interval types"
 tagline = ""
 summary = ""
 announcement = ""
@@ -1859,8 +1859,8 @@ subtype = { git = "https://github.com/DenisGorbachev/subtype" }
 if_missing = "error"
 
 [providers]
-keychain = { type = "keychain", service = "rust-pre-public-lib-template" }
-pass = { type = "password-store", prefix = "rust-pre-public-lib-template/" }
+keychain = { type = "keychain", service = "interval-zoo" }
+pass = { type = "password-store", prefix = "interval-zoo/" }
 ```
 
 ### src/lib.rs
