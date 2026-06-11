@@ -5,6 +5,8 @@
 A struct with two fields (`a`, `b`).
 
 - Must derive `Eq, PartialEq, Hash, Clone, Copy, Debug`
+- Must implement `Contains`
+- Must implement `Overlaps`
 
 ## Relaxed interval type
 
