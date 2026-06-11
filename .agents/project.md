@@ -2,27 +2,31 @@
 
 ## Interval type
 
-A struct with two fields (`a`, `b`).
+A struct with two fields of the same type.
 
 - Must derive `Eq, PartialEq, Hash, Clone, Copy, Debug`
 - Must implement `Contains`
 - Must implement `Overlaps`
-- Must have `new_ordered` constructor that enforces `a <= b` by reordering.
+- Must implement `Length`
+- Must have a doc comment that contains the following lines:
+  - This type intentionally doesn't implement `Ord` or `PartialOrd`, because a single interval has multiple values that can be compared (for example: field values, length value). Users should compare the values directly.
 
 ## Relaxed interval type
 
-An interval type that doesn't enforce `a <= b`.
+An interval type that doesn't perform any validation.
 
-- Must have `pub` fields
+- Must public fields `a` and `b`
 - Must have `normalize(&mut self)` method
+- Must have `new_ordered` constructor that enforces `a <= b` by reordering.
 
 ## Strict interval type
 
 An interval type that enforces `a <= b`.
 
-- Must have private fields
+- Must private fields `lo` and `hi`
 - Must derive `Getters, Into`
-- Must implement `TryFrom<(T, T)>` that enforces `a <= b` by returning an error with `OrderCheckFailed` variant
+- Must implement `TryFrom<(T, T)>` that enforces `lo <= hi` by returning an error with `OrderCheckFailed` variant
+- Must have `new_ordered` constructor that enforces `lo <= hi` by reordering.
 
 ## Finite interval
 
