@@ -26,7 +26,9 @@ impl<T, const A_INC: bool, const B_INC: bool> IntervalStrictFinite<T, A_INC, B_I
 where
     T: Ord,
 {
-    pub fn new_ordered(lo: T, hi: T) -> Self {
+    pub fn new_ordered(lo: impl Into<T>, hi: impl Into<T>) -> Self {
+        let lo = lo.into();
+        let hi = hi.into();
         use core::cmp::Ordering::*;
         match lo.cmp(&hi) {
             Greater => Self {
