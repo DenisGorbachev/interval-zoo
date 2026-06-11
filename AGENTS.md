@@ -454,6 +454,32 @@ You are running in a sandbox with limited network access.
 
 * The macro calls that begin with `subtype` (for example, `subtype!` and `subtype_string!`) expand to newtypes.
 
+## Project guidelines
+
+### Runtime interval type
+
+An interval type with [runtime bounds](#runtime-bound).
+
+### Finite interval
+
+An interval type with [finite bounds](#finite-bound)
+
+### Runtime bound
+
+A bound whose inclusivity is determined at runtime.
+
+### Comptime bound
+
+A bound whose inclusivity is determined at compile-time.
+
+### Finite bound
+
+A bound that has an exact finite value.
+
+### Non-finite bound
+
+A bound that can be either an exact finite value or infinity.
+
 ## Error handling
 
 ### Princicle
@@ -1869,4 +1895,8 @@ pass = { type = "password-store", prefix = "interval-zoo/" }
 //! This is a module-level comment for a Rust lib
 
 #![deny(clippy::arithmetic_side_effects)]
+mod types;
+pub use types::*;
+mod traits;
+pub use traits::*;
 ```
