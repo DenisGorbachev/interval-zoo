@@ -1,4 +1,4 @@
 mod interval_relaxed;
 pub use interval_relaxed::*;
-mod interval_strict_finite_exc_exc;
-pub use interval_strict_finite_exc_exc::*;
+mod interval_strict_finite;
+pub use interval_strict_finite::*;

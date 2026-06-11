@@ -7,7 +7,7 @@ A struct with two fields (`a`, `b`).
 - Must derive `Eq, PartialEq, Hash, Clone, Copy, Debug`
 - Must implement `Contains`
 - Must implement `Overlaps`
-- Must have `new_normalized` constructor that enforces `a <= b` by reordering.
+- Must have `new_ordered` constructor that enforces `a <= b` by reordering.
 
 ## Relaxed interval type
 
