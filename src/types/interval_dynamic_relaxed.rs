@@ -1,5 +1,7 @@
 use crate::{Contains, Length, Overlaps};
 use core::cmp::Ordering::Greater;
+use core::fmt::Debug;
+use core::mem::swap;
 use derive_getters::{Dissolve, Getters};
 use derive_more::From;
 use derive_new::new;
@@ -36,7 +38,7 @@ where
 
     pub fn normalize(&mut self) {
         if bounds_are_reversed(&self.a, &self.b) {
-            core::mem::swap(&mut self.a, &mut self.b);
+            swap(&mut self.a, &mut self.b);
         }
     }
 
@@ -53,7 +55,7 @@ impl<T> From<Range<T>> for IntervalDynamicRelaxed<T> {
 
 impl<T> TryFrom<IntervalDynamicRelaxed<T>> for Range<T>
 where
-    T: core::fmt::Debug,
+    T: Debug,
 {
     type Error = TryFromIntervalDynamicRelaxedForRangeError<T>;
 
