@@ -4,6 +4,7 @@ use core::ops::Bound::*;
 use core::ops::{Bound, RangeBounds};
 use derive_getters::Getters;
 use derive_more::Into;
+use errgonomic::map_err;
 use num_traits::CheckedSub;
 use thiserror::Error;
 
@@ -25,8 +26,22 @@ pub type IntervalStrictFiniteIncExc<T> = IntervalStrictFinite<T, INCLUDED, EXCLU
 pub type IntervalStrictFiniteIncInc<T> = IntervalStrictFinite<T, INCLUDED, INCLUDED>;
 
 impl<T, const A_INC: bool, const B_INC: bool> IntervalStrictFinite<T, A_INC, B_INC> {
-    /// SAFETY: `f` must preserve `lo <= hi` invariant
-    pub fn map<U>(self, mut f: impl FnMut(T) -> U) -> IntervalStrictFinite<U, A_INC, B_INC> {
+    pub fn map<U>(self, mut f: impl FnMut(T) -> U) -> Result<IntervalStrictFinite<U, A_INC, B_INC>, IntervalStrictFiniteMapError<U>>
+    where
+        U: Ord + Debug,
+    {
+        use IntervalStrictFiniteMapError::*;
+        let lo = f(self.lo);
+        let hi = f(self.hi);
+        map_err!(IntervalStrictFinite::try_from((lo, hi)), TryFromFailed)
+    }
+
+    /// Maps both endpoints without checking the output interval's order.
+    ///
+    /// # Safety
+    ///
+    /// `f` must preserve the `lo <= hi` invariant.
+    pub unsafe fn map_unchecked<U>(self, mut f: impl FnMut(T) -> U) -> IntervalStrictFinite<U, A_INC, B_INC> {
         IntervalStrictFinite {
             lo: f(self.lo),
             hi: f(self.hi),
@@ -133,6 +148,15 @@ impl_overlaps!(INCLUDED, INCLUDED, INCLUDED, INCLUDED, <=, <=);
 pub enum TryFromTupleForIntervalStrictFiniteError<T> {
     #[error("interval lower bound must be less than or equal to upper bound")]
     OrderCheckFailed { lo: T, hi: T },
+}
+
+#[derive(Error, Clone, Copy, Debug)]
+pub enum IntervalStrictFiniteMapError<T>
+where
+    T: Debug,
+{
+    #[error("failed to map strict interval bounds")]
+    TryFromFailed { source: TryFromTupleForIntervalStrictFiniteError<T> },
 }
 
 #[cfg(test)]
