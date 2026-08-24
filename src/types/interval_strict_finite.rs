@@ -22,6 +22,16 @@ pub type IntervalStrictFiniteExcInc<T> = IntervalStrictFinite<T, INTERVAL_BOUND_
 pub type IntervalStrictFiniteIncExc<T> = IntervalStrictFinite<T, INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_EXCLUDED>;
 pub type IntervalStrictFiniteIncInc<T> = IntervalStrictFinite<T, INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_INCLUDED>;
 
+impl<T, const A_INC: bool, const B_INC: bool> IntervalStrictFinite<T, A_INC, B_INC> {
+    /// SAFETY: `f` must preserve `lo <= hi` invariant
+    pub fn map<U>(self, mut f: impl FnMut(T) -> U) -> IntervalStrictFinite<U, A_INC, B_INC> {
+        IntervalStrictFinite {
+            lo: f(self.lo),
+            hi: f(self.hi),
+        }
+    }
+}
+
 impl<T, const A_INC: bool, const B_INC: bool> IntervalStrictFinite<T, A_INC, B_INC>
 where
     T: Ord,
