@@ -1,26 +1,28 @@
-use crate::{Contains, Length, Overlaps};
+use crate::{Length, Overlaps};
 use core::fmt::Debug;
+use core::ops::Bound::*;
+use core::ops::{Bound, RangeBounds};
 use derive_getters::Getters;
 use derive_more::Into;
 use num_traits::CheckedSub;
 use thiserror::Error;
 
-pub const INTERVAL_BOUND_EXCLUDED: bool = false;
-pub const INTERVAL_BOUND_INCLUDED: bool = true;
+pub const EXCLUDED: bool = false;
+pub const INCLUDED: bool = true;
 
 /// A strict finite interval.
 ///
 /// This type intentionally doesn't implement `Ord` or `PartialOrd`, because a single interval has multiple values that can be compared (for example: field values, length value). Users should compare the values directly.
 #[derive(Getters, Into, Eq, PartialEq, Hash, Clone, Copy, Debug)]
-pub struct IntervalStrictFinite<T, const A_INC: bool, const B_INC: bool> {
+pub struct IntervalStrictFinite<T, const LO_INC: bool, const HI_INC: bool> {
     lo: T,
     hi: T,
 }
 
-pub type IntervalStrictFiniteExcExc<T> = IntervalStrictFinite<T, INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_EXCLUDED>;
-pub type IntervalStrictFiniteExcInc<T> = IntervalStrictFinite<T, INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_INCLUDED>;
-pub type IntervalStrictFiniteIncExc<T> = IntervalStrictFinite<T, INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_EXCLUDED>;
-pub type IntervalStrictFiniteIncInc<T> = IntervalStrictFinite<T, INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_INCLUDED>;
+pub type IntervalStrictFiniteExcExc<T> = IntervalStrictFinite<T, EXCLUDED, EXCLUDED>;
+pub type IntervalStrictFiniteExcInc<T> = IntervalStrictFinite<T, EXCLUDED, INCLUDED>;
+pub type IntervalStrictFiniteIncExc<T> = IntervalStrictFinite<T, INCLUDED, EXCLUDED>;
+pub type IntervalStrictFiniteIncInc<T> = IntervalStrictFinite<T, INCLUDED, INCLUDED>;
 
 impl<T, const A_INC: bool, const B_INC: bool> IntervalStrictFinite<T, A_INC, B_INC> {
     /// SAFETY: `f` must preserve `lo <= hi` invariant
@@ -32,7 +34,7 @@ impl<T, const A_INC: bool, const B_INC: bool> IntervalStrictFinite<T, A_INC, B_I
     }
 }
 
-impl<T, const A_INC: bool, const B_INC: bool> IntervalStrictFinite<T, A_INC, B_INC>
+impl<T, const LO_INC: bool, const HI_INC: bool> IntervalStrictFinite<T, LO_INC, HI_INC>
 where
     T: Ord,
 {
@@ -53,7 +55,7 @@ where
     }
 }
 
-impl<T, const A_INC: bool, const B_INC: bool> TryFrom<(T, T)> for IntervalStrictFinite<T, A_INC, B_INC>
+impl<T, const LO_INC: bool, const HI_INC: bool> TryFrom<(T, T)> for IntervalStrictFinite<T, LO_INC, HI_INC>
 where
     T: Ord + Debug,
 {
@@ -76,7 +78,7 @@ where
     }
 }
 
-impl<T, const A_INC: bool, const B_INC: bool> Length for IntervalStrictFinite<T, A_INC, B_INC>
+impl<T, const LO_INC: bool, const HI_INC: bool> Length for IntervalStrictFinite<T, LO_INC, HI_INC>
 where
     T: CheckedSub,
 {
@@ -87,53 +89,45 @@ where
     }
 }
 
-macro_rules! impl_contains {
-    ($a_inc:expr, $b_inc:expr, $lower_op:tt, $upper_op:tt) => {
-        impl<T> Contains<T> for IntervalStrictFinite<T, $a_inc, $b_inc>
-        where
-            T: Ord,
-        {
-            fn contains(&self, value: &T) -> bool {
-                self.lo $lower_op *value && *value $upper_op self.hi
-            }
-        }
-    };
+impl<T, const LO_INC: bool, const HI_INC: bool> RangeBounds<T> for IntervalStrictFinite<T, LO_INC, HI_INC> {
+    fn start_bound(&self) -> Bound<&T> {
+        if LO_INC { Included(&self.lo) } else { Excluded(&self.lo) }
+    }
+
+    fn end_bound(&self) -> Bound<&T> {
+        if HI_INC { Included(&self.hi) } else { Excluded(&self.hi) }
+    }
 }
 
-impl_contains!(INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_EXCLUDED, <, <);
-impl_contains!(INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_INCLUDED, <, <=);
-impl_contains!(INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_EXCLUDED, <=, <);
-impl_contains!(INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_INCLUDED, <=, <=);
-
 macro_rules! impl_overlaps {
-    ($a_inc:expr, $b_inc:expr, $other_a_inc:expr, $other_b_inc:expr, $left_op:tt, $right_op:tt) => {
-        impl<T> Overlaps<IntervalStrictFinite<T, $other_a_inc, $other_b_inc>> for IntervalStrictFinite<T, $a_inc, $b_inc>
+    ($lo_inc:expr, $hi_inc:expr, $other_lo_inc:expr, $other_hi_inc:expr, $left_op:tt, $right_op:tt) => {
+        impl<T> Overlaps<IntervalStrictFinite<T, $other_lo_inc, $other_hi_inc>> for IntervalStrictFinite<T, $lo_inc, $hi_inc>
         where
             T: Ord,
         {
-            fn overlaps(&self, other: &IntervalStrictFinite<T, $other_a_inc, $other_b_inc>) -> bool {
+            fn overlaps(&self, other: &IntervalStrictFinite<T, $other_lo_inc, $other_hi_inc>) -> bool {
                 self.lo $left_op other.hi && other.lo $right_op self.hi
             }
         }
     };
 }
 
-impl_overlaps!(INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_EXCLUDED, <, <);
-impl_overlaps!(INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_INCLUDED, <, <);
-impl_overlaps!(INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_EXCLUDED, <, <);
-impl_overlaps!(INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_INCLUDED, <, <);
-impl_overlaps!(INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_EXCLUDED, <, <);
-impl_overlaps!(INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_INCLUDED, <, <);
-impl_overlaps!(INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_EXCLUDED, <, <=);
-impl_overlaps!(INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_INCLUDED, <, <=);
-impl_overlaps!(INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_EXCLUDED, <, <);
-impl_overlaps!(INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_INCLUDED, <=, <);
-impl_overlaps!(INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_EXCLUDED, <, <);
-impl_overlaps!(INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_INCLUDED, <=, <);
-impl_overlaps!(INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_EXCLUDED, <, <);
-impl_overlaps!(INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_EXCLUDED, INTERVAL_BOUND_INCLUDED, <=, <);
-impl_overlaps!(INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_EXCLUDED, <, <=);
-impl_overlaps!(INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_INCLUDED, INTERVAL_BOUND_INCLUDED, <=, <=);
+impl_overlaps!(EXCLUDED, EXCLUDED, EXCLUDED, EXCLUDED, <, <);
+impl_overlaps!(EXCLUDED, EXCLUDED, EXCLUDED, INCLUDED, <, <);
+impl_overlaps!(EXCLUDED, EXCLUDED, INCLUDED, EXCLUDED, <, <);
+impl_overlaps!(EXCLUDED, EXCLUDED, INCLUDED, INCLUDED, <, <);
+impl_overlaps!(EXCLUDED, INCLUDED, EXCLUDED, EXCLUDED, <, <);
+impl_overlaps!(EXCLUDED, INCLUDED, EXCLUDED, INCLUDED, <, <);
+impl_overlaps!(EXCLUDED, INCLUDED, INCLUDED, EXCLUDED, <, <=);
+impl_overlaps!(EXCLUDED, INCLUDED, INCLUDED, INCLUDED, <, <=);
+impl_overlaps!(INCLUDED, EXCLUDED, EXCLUDED, EXCLUDED, <, <);
+impl_overlaps!(INCLUDED, EXCLUDED, EXCLUDED, INCLUDED, <=, <);
+impl_overlaps!(INCLUDED, EXCLUDED, INCLUDED, EXCLUDED, <, <);
+impl_overlaps!(INCLUDED, EXCLUDED, INCLUDED, INCLUDED, <=, <);
+impl_overlaps!(INCLUDED, INCLUDED, EXCLUDED, EXCLUDED, <, <);
+impl_overlaps!(INCLUDED, INCLUDED, EXCLUDED, INCLUDED, <=, <);
+impl_overlaps!(INCLUDED, INCLUDED, INCLUDED, EXCLUDED, <, <=);
+impl_overlaps!(INCLUDED, INCLUDED, INCLUDED, INCLUDED, <=, <=);
 
 #[derive(Error, Clone, Copy, Debug)]
 pub enum TryFromTupleForIntervalStrictFiniteError<T> {

@@ -528,7 +528,7 @@ Notes:
 A struct with two fields of the same type.
 
 - Must derive `Eq, PartialEq, Hash, Clone, Copy, Debug`
-- Must implement `Contains`
+- Must implement `RangeBounds`
 - Must implement `Overlaps`
 - Must implement `Length`
 - Must have a doc comment that contains the following lines:

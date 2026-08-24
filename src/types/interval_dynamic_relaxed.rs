@@ -1,4 +1,4 @@
-use crate::{Contains, Length, Overlaps};
+use crate::{Length, Overlaps};
 use core::cmp::Ordering::Greater;
 use core::fmt::Debug;
 use core::mem::swap;
@@ -6,7 +6,7 @@ use derive_getters::{Dissolve, Getters};
 use derive_more::From;
 use derive_new::new;
 use num_traits::CheckedSub;
-use std::ops::{Bound, Range};
+use std::ops::{Bound, Range, RangeBounds};
 use thiserror::Error;
 
 use Bound::{Excluded, Included, Unbounded};
@@ -78,12 +78,13 @@ where
     }
 }
 
-impl<T> Contains<T> for IntervalDynamicRelaxed<T>
-where
-    T: Ord,
-{
-    fn contains(&self, value: &T) -> bool {
-        lower_contains(&self.a, value) && upper_contains(&self.b, value)
+impl<T> RangeBounds<T> for IntervalDynamicRelaxed<T> {
+    fn start_bound(&self) -> Bound<&T> {
+        self.a.as_ref()
+    }
+
+    fn end_bound(&self) -> Bound<&T> {
+        self.b.as_ref()
     }
 }
 
@@ -120,28 +121,6 @@ where
     match (lower, upper) {
         (Included(lower) | Excluded(lower), Included(upper) | Excluded(upper)) => lower.cmp(upper).is_gt(),
         (Unbounded, _) | (_, Unbounded) => false,
-    }
-}
-
-fn lower_contains<T>(lower: &Bound<T>, value: &T) -> bool
-where
-    T: Ord,
-{
-    match lower {
-        Included(lower) => lower <= value,
-        Excluded(lower) => lower < value,
-        Unbounded => true,
-    }
-}
-
-fn upper_contains<T>(upper: &Bound<T>, value: &T) -> bool
-where
-    T: Ord,
-{
-    match upper {
-        Included(upper) => value <= upper,
-        Excluded(upper) => value < upper,
-        Unbounded => true,
     }
 }
 
