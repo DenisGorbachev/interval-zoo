@@ -1,4 +1,4 @@
-use crate::{Length, Overlaps};
+use crate::{IntervalDynamicStrict, Length, Overlaps, finite_bound_value, is_ordered, low_before_high};
 use core::cmp::Ordering::Greater;
 use core::fmt::Debug;
 use core::mem::swap;
@@ -12,9 +12,11 @@ use thiserror::Error;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-use Bound::{Excluded, Included, Unbounded};
+use Bound::{Excluded, Included};
 
 /// A relaxed interval with runtime bounds.
+///
+/// Prefer [`IntervalDynamicStrict`] that implements validation.
 ///
 /// This type intentionally doesn't implement `Ord` or `PartialOrd`, because a single interval has multiple values that can be compared (for example: field values, length value). Users should compare the values directly.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -41,7 +43,7 @@ where
     }
 
     pub fn normalize(&mut self) {
-        if bounds_are_reversed(&self.a, &self.b) {
+        if !is_ordered(&self.a, &self.b) {
             swap(&mut self.a, &mut self.b);
         }
     }
@@ -54,6 +56,13 @@ where
 impl<T> From<Range<T>> for IntervalDynamicRelaxed<T> {
     fn from(value: Range<T>) -> Self {
         Self::new(Included(value.start), Excluded(value.end))
+    }
+}
+
+impl<T> From<IntervalDynamicStrict<T>> for IntervalDynamicRelaxed<T> {
+    fn from(value: IntervalDynamicStrict<T>) -> Self {
+        let (a, b): (Bound<T>, Bound<T>) = value.into();
+        Self::new(a, b)
     }
 }
 
@@ -97,7 +106,7 @@ where
     T: Ord,
 {
     fn overlaps(&self, other: &Self) -> bool {
-        lower_before_upper(&self.a, &other.b) && lower_before_upper(&other.a, &self.b)
+        low_before_high(&self.a, &self.b) && low_before_high(&other.a, &other.b) && low_before_high(&self.a, &other.b) && low_before_high(&other.a, &self.b)
     }
 }
 
@@ -115,34 +124,6 @@ where
             },
             _ => None,
         }
-    }
-}
-
-fn bounds_are_reversed<T>(lower: &Bound<T>, upper: &Bound<T>) -> bool
-where
-    T: Ord,
-{
-    match (lower, upper) {
-        (Included(lower) | Excluded(lower), Included(upper) | Excluded(upper)) => lower.cmp(upper).is_gt(),
-        (Unbounded, _) | (_, Unbounded) => false,
-    }
-}
-
-fn lower_before_upper<T>(lower: &Bound<T>, upper: &Bound<T>) -> bool
-where
-    T: Ord,
-{
-    match (lower, upper) {
-        (Unbounded, _) | (_, Unbounded) => true,
-        (Included(lower), Included(upper)) => lower <= upper,
-        (Included(lower), Excluded(upper)) | (Excluded(lower), Included(upper)) | (Excluded(lower), Excluded(upper)) => lower < upper,
-    }
-}
-
-fn finite_bound_value<T>(bound: &Bound<T>) -> Option<&T> {
-    match bound {
-        Included(value) | Excluded(value) => Some(value),
-        Unbounded => None,
     }
 }
 
