@@ -9,11 +9,15 @@ use num_traits::CheckedSub;
 use std::ops::{Bound, Range, RangeBounds};
 use thiserror::Error;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 use Bound::{Excluded, Included, Unbounded};
 
 /// A relaxed interval with runtime bounds.
 ///
 /// This type intentionally doesn't implement `Ord` or `PartialOrd`, because a single interval has multiple values that can be compared (for example: field values, length value). Users should compare the values directly.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(new, Getters, Dissolve, From, Eq, PartialEq, Hash, Clone, Copy, Debug)]
 pub struct IntervalDynamicRelaxed<T> {
     pub a: Bound<T>,
