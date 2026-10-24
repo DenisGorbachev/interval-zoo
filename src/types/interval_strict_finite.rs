@@ -8,12 +8,17 @@ use errgonomic::map_err;
 use num_traits::CheckedSub;
 use thiserror::Error;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 pub const EXCLUDED: bool = false;
 pub const INCLUDED: bool = true;
 
 /// A strict finite interval.
 ///
 /// This type intentionally doesn't implement `Ord` or `PartialOrd`, because a single interval has multiple values that can be compared (for example: field values, length value). Users should compare the values directly.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(into = "(T, T)", try_from = "(T, T)", bound(serialize = "T: Clone + Serialize", deserialize = "T: Ord + Debug + Deserialize<'de>")))]
 #[derive(Getters, Into, Eq, PartialEq, Hash, Clone, Copy, Debug)]
 pub struct IntervalStrictFinite<T, const LO_INC: bool, const HI_INC: bool> {
     lo: T,
