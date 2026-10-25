@@ -9,7 +9,7 @@ use num_traits::CheckedSub;
 use thiserror::Error;
 
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 
 pub const EXCLUDED: bool = false;
 pub const INCLUDED: bool = true;
@@ -17,12 +17,19 @@ pub const INCLUDED: bool = true;
 /// A strict finite interval.
 ///
 /// This type intentionally doesn't implement `Ord` or `PartialOrd`, because a single interval has multiple values that can be compared (for example: field values, length value). Users should compare the values directly.
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(into = "(T, T)", try_from = "(T, T)", bound(serialize = "T: Clone + Serialize", deserialize = "T: Ord + Debug + Deserialize<'de>")))]
+#[cfg_attr(feature = "serde", derive(Deserialize))]
+#[cfg_attr(feature = "serde", serde(try_from = "(T, T)", bound(deserialize = "T: PartialOrd + Deserialize<'de>")))]
 #[derive(Getters, Into, Eq, PartialEq, Hash, Clone, Copy, Debug)]
 pub struct IntervalStrictFinite<T, const LO_INC: bool, const HI_INC: bool> {
     lo: T,
     hi: T,
+}
+
+#[cfg(feature = "serde")]
+impl<T: Serialize, const LO_INC: bool, const HI_INC: bool> Serialize for IntervalStrictFinite<T, LO_INC, HI_INC> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        (&self.lo, &self.hi).serialize(serializer)
+    }
 }
 
 pub type IntervalStrictFiniteExcExc<T> = IntervalStrictFinite<T, EXCLUDED, EXCLUDED>;
@@ -33,7 +40,7 @@ pub type IntervalStrictFiniteIncInc<T> = IntervalStrictFinite<T, INCLUDED, INCLU
 impl<T, const A_INC: bool, const B_INC: bool> IntervalStrictFinite<T, A_INC, B_INC> {
     pub fn map<U>(self, mut f: impl FnMut(T) -> U) -> Result<IntervalStrictFinite<U, A_INC, B_INC>, IntervalStrictFiniteMapError<U>>
     where
-        U: Ord + Debug,
+        U: PartialOrd + Debug,
     {
         use IntervalStrictFiniteMapError::*;
         let lo = f(self.lo);
@@ -77,20 +84,20 @@ where
 
 impl<T, const LO_INC: bool, const HI_INC: bool> TryFrom<(T, T)> for IntervalStrictFinite<T, LO_INC, HI_INC>
 where
-    T: Ord + Debug,
+    T: PartialOrd,
 {
     type Error = TryFromTupleForIntervalStrictFiniteError<T>;
 
     fn try_from((lo, hi): (T, T)) -> Result<Self, Self::Error> {
         use TryFromTupleForIntervalStrictFiniteError::*;
         use core::cmp::Ordering::*;
-        let order = lo.cmp(&hi);
+        let order = lo.partial_cmp(&hi);
         match (order, lo, hi) {
-            (Equal | Less, lo, hi) => Ok(Self {
+            (Some(Equal | Less), lo, hi) => Ok(Self {
                 lo,
                 hi,
             }),
-            (Greater, lo, hi) => Err(OrderCheckFailed {
+            (Some(Greater) | None, lo, hi) => Err(OrderCheckFailed {
                 lo,
                 hi,
             }),
