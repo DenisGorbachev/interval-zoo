@@ -512,13 +512,6 @@ Examples:
 
 A pkg that has a remote whose name contains `public` or `pre-public` and ends with `template`.
 
-### Guidelines for `subtype`
-
-- Define newtypes as ordinary tuple structs with explicit `From` / `TryFrom` impls.
-- Use `SerializeTransparent` derive from `subtype` for a refined newtype that must serialize identically to its inner field while using Serde's `try_from` container attr for validated deserialization.
-- Macro calls that begin with `subtype` (for example: `subtype!` and `subtype_string!`) are legacy APIs that expand to newtypes.
-  - Don't use them in new code because their checker and preprocessor concepts have been superseded by explicit conversion impls.
-
 ### Project guidelines
 
 #### Interval type
@@ -1535,13 +1528,8 @@ derive-getters = { version = "0.5.0", features = ["auto_copy_getters"] }
 derive-new = "0.7.0"
 derive_more = { version = "2.1.1", features = ["full"] }
 errgonomic = { git = "https://github.com/DenisGorbachev/errgonomic" }
-itertools = "0.14.0"
 num-traits = "0.2.19"
 serde = { version = "1.0.229", features = ["derive"], optional = true }
-standard-traits = { git = "https://github.com/DenisGorbachev/standard-traits" }
-strum = { version = "0.27.2", features = ["derive"] }
-stub-macro = { version = "0.2.1" }
-subtype = { git = "https://github.com/DenisGorbachev/subtype" }
 thiserror = "2.0.18"
 ```
 
